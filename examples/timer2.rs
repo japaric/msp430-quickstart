@@ -104,7 +104,7 @@ fn main() {
                 // w: timer0_a3::ta0ccr0::W
                 unsafe {
                     // Writes raw bits to the register
-                    // Count up to CCR0=1200
+                    // Count up to CCR0=5000
                     w.bits(5000)
                 }
             );
@@ -139,7 +139,7 @@ fn main() {
             // timer0_a3::ta0ccr1
             .ta0ccr1.write(|w|
                 // w: timer0_a3::ta0ccr1::W
-                // generate interupt when TimerA count to 600
+                // generate interupt when TimerA count to 1000
                 unsafe { w.bits(1000) }
             );
          
