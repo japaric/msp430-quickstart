@@ -1,10 +1,16 @@
-//! Sharing data between a main thread and an interrupt handler safely.
+//! Sharing data between a main thread and an interrupt handler safely using `unsafe`
+//! code blocks in contexts where they can't cause
+//! (Undefined Behavior)[https://doc.rust-lang.org/reference/behavior-considered-undefined.html].
 //!
-//! This example uses the [libcore](core)-provided [RefCell](core::cell::RefCell) to safely share
-//! access to msp430 peripherals between a main thread and interrupt.
+//! This example uses the normally `unsafe`
+//! [`Peripherals::steal()`][steal] method to safely share access to msp430 peripherals between a
+//! main thread and interrupt. All uses of [`steal()`] are commented to explain _why_ its usage
+//! is safe in that particular context.
 //!
-//! As with [timer-unsafe] and [timer-oncecell], this example uses the `TIMER0_A1` interrupt to
-//! blink LEDs on the [MSP-EXP430G2](http://www.ti.com/tool/MSP-EXP430G2) development kit.
+//! As with [timer] and [timer-oncecell], this example uses the `TIMER0_A1` interrupt to blink
+//! LEDs on the [MSP-EXP430G2](http://www.ti.com/tool/MSP-EXP430G2) development kit.
+//!
+//! [steal]: msp430g2553::Peripherals::steal
 //!
 //! ---
 
@@ -14,17 +20,14 @@
 
 extern crate panic_msp430;
 
-use core::cell::RefCell;
 use msp430::interrupt as mspint;
 use msp430_rt::entry;
 use msp430g2553::{interrupt, Peripherals};
 
-static PERIPHERALS : mspint::Mutex<RefCell<Option<Peripherals>>> =
-    mspint::Mutex::new(RefCell::new(None));
-
 #[entry]
 fn main() -> ! {
-    let p = Peripherals::take().unwrap();
+    // Safe because interrupts are disabled after a reset.
+    let p = unsafe { Peripherals::steal() };
 
     let wdt = &p.WATCHDOG_TIMER;
     wdt.wdtctl.write(|w| {
@@ -49,10 +52,6 @@ fn main() -> ! {
     timer.ta0cctl1.modify(|_, w| w.ccie().set_bit());
     timer.ta0ccr1.write(|w| unsafe { w.bits(600) });
 
-    mspint::free(|cs| {
-        *PERIPHERALS.borrow(cs).borrow_mut() = Some(p);
-    });
-
     unsafe {
         mspint::enable();
     }
@@ -62,9 +61,10 @@ fn main() -> ! {
 
 #[interrupt]
 fn TIMER0_A1() {
-    mspint::free(|cs| {
-        let p_ref = PERIPHERALS.borrow(&cs).borrow();
-        let p = p_ref.as_ref().unwrap();
+    mspint::free(|_cs| {
+        // Safe because msp430 disables interrupts on handler entry. Therefore the handler
+        // has full control/access to peripherals without data races.
+        let p = unsafe { Peripherals::steal() };
 
         let timer = &p.TIMER0_A3;
         timer.ta0cctl1.modify(|_, w| w.ccifg().clear_bit());
