@@ -15,7 +15,9 @@ panic-msp430 = "0.2.0"
 # the identifier "msp430g2553" with the crate name of your PAC. Your PAC must
 # be generated with svd2rust git commit 783fbd0 or later.
 [dependencies.msp430g2553]
-version = "0.2.0"
+git = "https://github.com/cr1901/msp430g2553"
+branch = "safe-api"
+version = "0.3.0"
 features = ["rt"]
 
 # Uncomment for the "timer-oncecell example". The interior mutability type

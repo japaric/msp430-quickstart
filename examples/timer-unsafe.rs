@@ -31,8 +31,7 @@ fn main(cs: CriticalSection) -> ! {
 
     let wdt = &p.WATCHDOG_TIMER;
     wdt.wdtctl.write(|w| {
-        unsafe { w.bits(0x5A00) } // password
-        .wdthold().set_bit()
+        w.wdtpw().password().wdthold().set_bit()
     });
 
     let port_1_2 = &p.PORT_1_2;
@@ -46,11 +45,11 @@ fn main(cs: CriticalSection) -> ! {
     clock.bcsctl1.modify(|_, w| w.diva().diva_1());
 
     let timer = &p.TIMER0_A3;
-    timer.ta0ccr0.write(|w| unsafe { w.bits(1200) });
-    timer.ta0ctl.modify(|_, w| w.tassel().tassel_1()
+    timer.taccr0.write(|w| w.taccr0().bits(1200));
+    timer.tactl.modify(|_, w| w.tassel().tassel_1()
                                 .mc().mc_1());
-    timer.ta0cctl1.modify(|_, w| w.ccie().set_bit());
-    timer.ta0ccr1.write(|w| unsafe { w.bits(600) });
+    timer.tacctl1.modify(|_, w| w.ccie().set_bit());
+    timer.taccr1.write(|w| w.taccr1().bits(600));
 
     mspint::enable_cs(cs);
 
@@ -68,7 +67,7 @@ fn TIMER0_A1(_cs: CriticalSection) {
     let p = unsafe { Peripherals::steal() };
 
     let timer = &p.TIMER0_A3;
-    timer.ta0cctl1.modify(|_, w| w.ccifg().clear_bit());
+    timer.tacctl1.modify(|_, w| w.ccifg().clear_bit());
 
     let port_1_2 = &p.PORT_1_2;
     port_1_2.p1out.modify(|r, w| w.p0().bit(!r.p0().bit())
