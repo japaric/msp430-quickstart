@@ -1,6 +1,7 @@
 # `msp430-quickstart`
 
-> WIP
+The official MSP430 quickstart repo is at https://github.com/rust-embedded/msp430-quickstart
+This is an old version that has been archived.
 
 # License
 
